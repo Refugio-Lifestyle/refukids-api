@@ -21,11 +21,15 @@ SSH_COMMAND_MIGRATOR="docker pull $DOCKER_USER/$MIGRATOR_NAME:latest && docker c
 # =========================
 MIGRATOR=false
 DEPLOY=false
+BUILD_APP=true
 
 for arg in "$@"; do
   case $arg in
     --migrator)
       MIGRATOR=true
+      ;;
+    --omit-app)
+      BUILD_APP=false
       ;;
     --deploy)
       DEPLOY=true
@@ -55,12 +59,15 @@ echo "$NEW_VERSION" > $VERSION_FILE
 # =========================
 # Build APP image
 # =========================
+
+if [ "$BUILD_APP" = true ]; then
 echo "🐳 Building APP image ($NEW_VERSION)..."
 docker build \
   -t $DOCKER_USER/$APP_NAME:$NEW_VERSION \
   .
 
 docker tag $DOCKER_USER/$APP_NAME:$NEW_VERSION $DOCKER_USER/$APP_NAME:latest
+fi
 
 # =========================
 # Build MIGRATOR image
@@ -78,9 +85,11 @@ fi
 # =========================
 # Push images
 # =========================
+if [ "$BUILD_APP" = true ]; then
 echo "📤 Pushing versioned images..."
 docker push $DOCKER_USER/$APP_NAME:$NEW_VERSION
 docker push $DOCKER_USER/$APP_NAME:latest
+fi
 
 if [ "$MIGRATOR" = true ]; then
   docker push $DOCKER_USER/$MIGRATOR_NAME:$NEW_VERSION
