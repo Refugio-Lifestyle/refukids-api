@@ -11,7 +11,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         select: {
             impressora: {
                 select: {
-                    ip: true
+                    mac: true,
+                    tipo: true
                 }
             },
             checkin: {
@@ -24,7 +25,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
                     },
                     crianca: {
                         select: {
-                            nome: true
+                            nome: true,
+                            dataNascimento: true,
+                            familia: {
+                                include: {
+                                    responsaveis: {
+                                        take: 2,
+                                        orderBy: [{ sexo: "asc" }],
+                                        select: {
+                                            nome: true,
+                                            telefone: true,
+                                            celula: true
+                                        },
+                                        where: {
+                                            responsavelLegal: true
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -34,6 +52,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             id
         }
     })
+
+    if (!impressao) {
+        return Response.json({ error: "Impressão não encontrada" }, { status: 404 })
+    }
 
     return Response.json({ data: impressao })
 }

@@ -2,6 +2,7 @@ import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
 import { getPrismaErrorMessage } from "@/utils/helpers";
 import { nomeZodValidacao } from "@/utils/validacoes";
+import moment from "moment";
 import { NextRequest } from "next/server";
 import z from "zod";
 
@@ -50,21 +51,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         return Response.json({ error: 'Campo id é obrigatório' }, { status: 400 })
     }
 
-    const { data: payload, error: payloadError } = z
-        .object({
-            ip: z.ipv4('Campo IP da impressora inválido')
-        })
-        .safeParse(await req.json())
-
-    if (payloadError) {
-        return Response.json({ error: payloadError?.message }, { status: 400 })
-    }
-
     try {
         const impressora = await prisma.impressora
             .update({
                 data: {
-                    ip: payload.ip,
+                    ultimaConexaoEm: moment().toDate(),
                     operador: {
                         connect: {
                             cpf: usuario.cpf

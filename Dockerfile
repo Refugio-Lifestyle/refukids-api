@@ -37,13 +37,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-COPY --from=deps /app/node_modules ./node_modules
+RUN npm install prisma@7.5.0 @prisma/client@7.5.0 --no-save
+
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 ENV NODE_ENV=production
-
 CMD ["sh", "-c", "npx prisma migrate deploy"]
 
 # =========================

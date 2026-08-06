@@ -31,6 +31,9 @@ export const telefoneZodValidacao = z.string({ error: "O campo Telefone é obrig
     .trim()
     .transform(onlyNumbers)
 
+
+export const impressoraTipoZodValidacao = z.enum(["Wifi", "Bluetooth", "USB"], { error: "O campo Tipo da impressora é obrigatório" })
+
 export const parentescoZodValidacao = z.enum(["Pai", "Mae", "Tio", "Tia", "Irmao", "Irma", "AvoM", "AvoF", "Lider", "Outro"], { error: "O campo Parentesco é obrigatório" })
 
 export const enderecoZodValidacao = z.string({ error: "O campo Endereço é obrigatório" })

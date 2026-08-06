@@ -122,16 +122,19 @@ model Responsavel {
 
 model Impressora {
   id        String  @id @default(uuid())
-  foto      String?
+  mac       String
+  modelo    String
+  tipo      String
   descricao String
+  foto      String?
 
   cadastradoEm DateTime  @default(now())
   atualizadoEm DateTime  @updatedAt
   deletadoEm   DateTime?
 
-  ip         String?
-  operadorId String?
-  operador   Servo?  @relation(fields: [operadorId], references: [id])
+  operadorId      String?
+  operador        Servo?    @relation(fields: [operadorId], references: [id])
+  ultimaConexaoEm DateTime?
 
   impressoes Impressao[]
 }

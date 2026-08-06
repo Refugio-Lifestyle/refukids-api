@@ -1,7 +1,9 @@
 import { useUserToken } from "@/hooks/useUserToken";
+import { firebaseDb } from "@/lib/firebase";
 import { prisma } from "@/lib/prisma";
 import { getPrismaErrorMessage } from "@/utils/helpers";
 import { idZodValidacao } from "@/utils/validacoes";
+import { child, push, ref } from "firebase/database";
 import moment from "moment";
 import { NextRequest } from "next/server";
 import z from "zod";
@@ -33,7 +35,12 @@ export async function POST(req: NextRequest) {
     let impressora = await prisma.impressora.findFirst({
         select: {
             id: true,
-            operador: true
+            descricao: true,
+            operador: {
+                select: {
+                    cpf: true
+                }
+            },
         },
         where: {
             id: payload.impressoraId,
@@ -50,7 +57,16 @@ export async function POST(req: NextRequest) {
     let crianca = await prisma.crianca.findFirst({
         select: {
             id: true,
-            dataNascimento: true
+            nome: true,
+            dataNascimento: true,
+            familia: {
+                select: {
+                    responsaveis: {
+                        select: { nome: true, telefone: true, celula: true },
+                        where: { responsavelLegal: true }
+                    }
+                }
+            }
         },
         where: {
             id: payload.criancaId
@@ -66,7 +82,8 @@ export async function POST(req: NextRequest) {
 
     let turma = await prisma.turma.findFirst({
         select: {
-            id: true
+            id: true,
+            descricao: true
         },
         where: {
             AND: [
@@ -83,15 +100,10 @@ export async function POST(req: NextRequest) {
     try {
         let checkin = await prisma.checkin.create({
             select: {
-                id: true,
-                impressoes: {
-                    select: {
-                        id: true
-                    }
-                }
+                id: true
             },
             data: {
-                culto: moment().utc().format('YYYY-MM-DD'),
+                culto: moment().format('YYYY-MM-DD'),
                 criancaId: crianca.id,
                 turmaId: turma.id,
                 eventos: {
@@ -110,12 +122,14 @@ export async function POST(req: NextRequest) {
         })
 
         // Gera impressão do ticket
-        // let [impressao] = checkin.impressoes
-        // await notificarUsuario(
-        //     usuario.cpf,
-        //     [impressora.operador!],
-        //     { titulo: 'Impressão de Checkin', corpo: impressao.id }
-        // )
+        let impressoesRef = ref(firebaseDb, `refukids/impressoes`)
+        let impressoesOperadorRef = child(impressoesRef, impressora.operador!.cpf)
+        await push(impressoesOperadorRef, {
+            checkin,
+            impressora,
+            turma,
+            crianca
+        })
 
         return Response.json({ data: checkin })
     }
