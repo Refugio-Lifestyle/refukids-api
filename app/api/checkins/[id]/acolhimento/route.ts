@@ -1,8 +1,34 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
-import { getPrismaErrorMessage } from "@/utils/helpers";
+import { CheckinEventoSchema } from "@/prisma/zod";
+import { generateOpenAPIErrorResponse, generateOpenAPIPrismaErrorResponse, getPrismaErrorMessage } from "@/utils/helpers";
 import { notificarUsuario } from "@/utils/notificacao";
 import { NextRequest } from "next/server";
+import z from "zod";
+
+export const OpenAPICheckinIdAcolhimento = {
+    method: 'POST',
+    path: '/api/checkins/{id}/acolhimento',
+    request: {
+        params: z.object({
+            id: z.string()
+        }),
+    },
+    responses: {
+        ...generateOpenAPIPrismaErrorResponse(400, 'Falha na operação do banco de dados'),
+        ...generateOpenAPIErrorResponse(400, 'Campo Id é obrigatório'),
+        ...generateOpenAPIErrorResponse(404, 'Checkin não encontrado'),
+        ...generateOpenAPIErrorResponse(500, 'Falha ao registrar o acolhimento'),
+        200: {
+            description: 'Lista de posts',
+            content: {
+                'application/json': {
+                    schema: CheckinEventoSchema
+                }
+            },
+        }
+    },
+}
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const usuario = useUserToken(req)
@@ -59,7 +85,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
         if ("clientVersion" in error) {
             const message = getPrismaErrorMessage(error.code)
-            return Response.json({ error: message }, { status: 400 })
+            return Response.json({ error: message, prismCode: error.code }, { status: 400 })
         }
 
         return Response.json({ error: 'Falha ao registrar o acolhimento' }, { status: 500 })

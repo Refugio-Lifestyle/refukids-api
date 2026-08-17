@@ -13,7 +13,39 @@ export function getPrismaErrorMessage(code?: string): string {
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import z from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export const generateOpenAPIErrorResponse = (statusCode: number, description: string) => {
+  return {
+    [statusCode]: {
+      description,
+      content: {
+        'application/json': {
+          schema: {
+            error: z.string()
+          }
+        }
+      }
+    }
+  }
+}
+
+export const generateOpenAPIPrismaErrorResponse = (statusCode: number, description: string) => {
+  return {
+    [statusCode]: {
+      description,
+      content: {
+        'application/json': {
+          schema: {
+            error: z.string(),
+            prismaCode: z.number().nullable()
+          }
+        }
+      }
+    }
+  }
 }

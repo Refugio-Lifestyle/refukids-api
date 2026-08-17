@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { introspectToken, validateJWT } from "./lib/auth";
 
 export async function proxy(req: Request) {
-    if (req.url.endsWith('_')) {
+    if (['docs', 'health', 'version'].some(p => req.url.endsWith(p))) {
         return NextResponse.next();
     }
 
