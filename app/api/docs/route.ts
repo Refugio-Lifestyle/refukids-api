@@ -1,7 +1,6 @@
 import { OpenAPICheckinIdAcolhimento } from '@/app/api/checkins/[id]/acolhimento/route';
 import { OpenAPICheckinIdAnotacao } from '@/app/api/checkins/[id]/anotacao/route';
 import { version } from '@/package.json';
-// @ts-ignore
 import { OpenApiGeneratorV3, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi';
 import { NextResponse } from "next/server";
 
