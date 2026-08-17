@@ -1,11 +1,16 @@
 import { prisma } from "@/lib/prisma"
 import { getPrismaErrorMessage } from "@/utils/helpers"
-import { fotoZodValidacao, idZodValidacao, impressoraTipoZodValidacao, nomeZodValidacao } from "@/utils/validacoes"
+import { fotoZodValidacao, idZodValidacao, nomeZodValidacao } from "@/utils/validacoes"
 import { NextRequest } from "next/server"
 import z from "zod"
 
 export async function GET(req: NextRequest) {
-    let impressoras = await prisma.impressora.findMany()
+    let impressoras = await prisma.impressora.findMany({
+        orderBy: {
+            cadastradoEm: "asc"
+        }
+    })
+
     return Response.json({ data: impressoras })
 }
 
@@ -14,7 +19,7 @@ export async function POST(req: NextRequest) {
         .object({
             mac: idZodValidacao,
             modelo: idZodValidacao,
-            tipo: impressoraTipoZodValidacao,
+            tipo: idZodValidacao,
             foto: fotoZodValidacao,
             descricao: nomeZodValidacao,
         })

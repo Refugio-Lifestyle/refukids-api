@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
     let impressora = await prisma.impressora.findFirst({
         select: {
             id: true,
+            mac: true,
+            tipo: true,
             descricao: true,
             operador: {
                 select: {
@@ -100,7 +102,8 @@ export async function POST(req: NextRequest) {
     try {
         let checkin = await prisma.checkin.create({
             select: {
-                id: true
+                id: true,
+                cadastradoEm: true
             },
             data: {
                 culto: moment().format('YYYY-MM-DD'),
@@ -125,11 +128,16 @@ export async function POST(req: NextRequest) {
         let impressoesRef = ref(firebaseDb, `refukids/impressoes`)
         let impressoesOperadorRef = child(impressoesRef, impressora.operador!.cpf)
         await push(impressoesOperadorRef, {
-            checkin,
+            checkin: {
+                ...checkin,
+                cadastradoEm: checkin.cadastradoEm.getTime()
+            },
             impressora,
             turma,
             crianca
         })
+
+        // Notificar responsável
 
         return Response.json({ data: checkin })
     }
