@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { CheckinEventoSchema } from "@/prisma/zod";
 import { generateOpenAPIErrorResponse, generateOpenAPIPrismaErrorResponse, getPrismaErrorMessage } from "@/utils/helpers";
 import { notificarUsuario } from "@/utils/notificacao";
-// @ts-ignore
 import { RouteConfig } from '@asteasolutions/zod-to-openapi';
 import { NextRequest } from "next/server";
 import z from "zod";
@@ -15,7 +14,7 @@ const RequestPostPayload = z
     })
 
 export const OpenAPICheckinIdAnotacao: RouteConfig = {
-    method: 'POST',
+    method: 'post',
     path: '/api/checkins/{id}/anotacao',
     request: {
         params: z.object({
