@@ -1,6 +1,6 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
-import { CheckinEventoSchema } from "@/prisma/zod";
+import { CheckinEventoSchema } from "@/prisma/generated/zod";
 import { generateOpenAPIErrorResponse, generateOpenAPIPrismaErrorResponse, getPrismaErrorMessage } from "@/utils/helpers";
 import { notificarUsuario } from "@/utils/notificacao";
 import { RouteConfig } from '@asteasolutions/zod-to-openapi';
