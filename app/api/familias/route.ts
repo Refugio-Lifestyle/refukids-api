@@ -1,11 +1,27 @@
 import { useUserInfo } from "@/hooks/useUserInfo"
 import { useUserToken } from "@/hooks/useUserToken"
 import { prisma } from "@/lib/prisma"
-import { getPrismaErrorMessage } from "@/utils/helpers"
+import { FamiliaSchema } from "@/prisma/generated/zod"
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers"
 import { parentescoZodValidacao } from "@/utils/validacoes"
+import { RouteConfig } from "@asteasolutions/zod-to-openapi"
 import { Parentesco, Sexo } from "@prisma/client"
 import { NextRequest } from "next/server"
 import z from "zod"
+
+export const OpenAPIFamiliasGet: RouteConfig = {
+    tags: ['Familias'],
+    summary: 'Busca a família do usuário',
+    method: 'get',
+    path: '/familias',
+    security: [{ BearerAuth: [] }],
+    responses: {
+        ...generateOpenAPIErrorsResponses(FamiliaSchema, {}),
+        204: {
+            description: 'Usuário sem família cadastrada'
+        }
+    }
+}
 
 export async function GET(req: NextRequest) {
     const usuario = useUserToken(req)
@@ -78,18 +94,43 @@ export async function GET(req: NextRequest) {
     return Response.json(familia)
 }
 
+const RequestPostSchema = z
+    .object({
+        nome: z.string({ error: "O campo Nome é obrigatório" }).trim(),
+        parentesco: parentescoZodValidacao
+    })
+
+export const OpenAPIFamiliasPost: RouteConfig = {
+    tags: ['Familias'],
+    summary: 'Cadastra a família do usuário',
+    method: 'post',
+    path: '/familias',
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            required: true,
+            content: {
+                "application/json": {
+                    schema: RequestPostSchema
+                }
+            }
+        }
+    },
+    responses: generateOpenAPIErrorsResponses(FamiliaSchema, {
+        '400': ['Campos obrigatórios', 'Usuário já possui uma Família'],
+        '500': ['Falha ao cadastrar a família']
+    })
+}
+
+
 export async function POST(req: NextRequest) {
     const usuario = await useUserInfo(req)
 
-    const { data, error } = z
-        .object({
-            nome: z.string({ error: "O campo Nome é obrigatório" }).trim(),
-            parentesco: parentescoZodValidacao
-        })
+    const { data, error } = RequestPostSchema
         .safeParse(await req.json())
 
     if (error) {
-        return Response.json({ error: error.message })
+        return Response.json({ error: error.message }, { status: 400 })
     }
 
     let responsavel = await prisma.responsavel.count({

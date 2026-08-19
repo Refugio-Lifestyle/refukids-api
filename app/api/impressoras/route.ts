@@ -1,8 +1,19 @@
 import { prisma } from "@/lib/prisma"
-import { getPrismaErrorMessage } from "@/utils/helpers"
+import { ImpressoraSchema } from "@/prisma/generated/zod"
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers"
 import { fotoZodValidacao, idZodValidacao, nomeZodValidacao } from "@/utils/validacoes"
+import { RouteConfig } from "@asteasolutions/zod-to-openapi"
 import { NextRequest } from "next/server"
 import z from "zod"
+
+export const OpenAPIImpressorasGet: RouteConfig = {
+    tags: ['Impressoras'],
+    summary: 'Busca todas as impressoras',
+    method: 'get',
+    path: '/impressoras',
+    security: [{ BearerAuth: [] }],
+    responses: generateOpenAPIErrorsResponses(z.array(ImpressoraSchema), {})
+}
 
 export async function GET(req: NextRequest) {
     let impressoras = await prisma.impressora.findMany({
@@ -11,18 +22,43 @@ export async function GET(req: NextRequest) {
         }
     })
 
-    return Response.json({ data: impressoras })
+    return Response.json(impressoras)
+}
+
+
+const RequestPostSchema = z
+    .object({
+        mac: idZodValidacao,
+        modelo: idZodValidacao,
+        tipo: idZodValidacao,
+        foto: fotoZodValidacao,
+        descricao: nomeZodValidacao,
+    })
+
+export const OpenAPIImpressorasPost: RouteConfig = {
+    tags: ['Impressoras'],
+    summary: 'Cadastra uma nova impressora',
+    method: 'post',
+    path: '/impressoras',
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            required: true,
+            content: {
+                "application/json": {
+                    schema: RequestPostSchema
+                }
+            }
+        }
+    },
+    responses: generateOpenAPIErrorsResponses(ImpressoraSchema, {
+        '400': ['Campos obrigatórios'],
+        '500': ['Falha ao cadastrar a impressora']
+    })
 }
 
 export async function POST(req: NextRequest) {
-    const { data: payload, error: payloadError } = z
-        .object({
-            mac: idZodValidacao,
-            modelo: idZodValidacao,
-            tipo: idZodValidacao,
-            foto: fotoZodValidacao,
-            descricao: nomeZodValidacao,
-        })
+    const { data: payload, error: payloadError } = RequestPostSchema
         .safeParse(await req.json())
 
     if (payloadError) {
@@ -40,7 +76,7 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        return Response.json({ data: impressora })
+        return Response.json(impressora)
     }
     catch (error: any) {
         console.error(error)

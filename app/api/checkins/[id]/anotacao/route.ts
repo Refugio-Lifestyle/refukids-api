@@ -1,7 +1,7 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
 import { CheckinEventoSchema } from "@/prisma/generated/zod";
-import { generateOpenAPIErrorResponse, generateOpenAPIPrismaErrorResponse, getPrismaErrorMessage } from "@/utils/helpers";
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers";
 import { notificarUsuario } from "@/utils/notificacao";
 import { RouteConfig } from '@asteasolutions/zod-to-openapi';
 import { NextRequest } from "next/server";
@@ -13,16 +13,18 @@ const RequestPostPayload = z
         responsaveisNotificados: z.boolean()
     })
 
-export const OpenAPICheckinIdAnotacao: RouteConfig = {
+export const OpenAPICheckinsIdAnotacao: RouteConfig = {
+    tags: ['Checkins'],
+    summary: 'Salva um evento do checkin do tipo anotação',
     method: 'post',
-    path: '/api/checkins/{id}/anotacao',
+    path: '/checkins/{id}/anotacao',
+    security: [{ BearerAuth: [] }],
     request: {
         params: z.object({
             id: z.string()
         }),
         body: {
             required: true,
-            description: 'Registra uma anotação do checkin',
             content: {
                 'application/json': {
                     schema: RequestPostPayload
@@ -30,20 +32,11 @@ export const OpenAPICheckinIdAnotacao: RouteConfig = {
             },
         }
     },
-    responses: {
-        ...generateOpenAPIPrismaErrorResponse(400, 'Falha na operação do banco de dados'),
-        ...generateOpenAPIErrorResponse(400, 'Campo Id é obrigatório'),
-        ...generateOpenAPIErrorResponse(404, 'Checkin não encontrado'),
-        ...generateOpenAPIErrorResponse(500, 'Falha ao registrar o acolhimento'),
-        200: {
-            description: 'Lista de posts',
-            content: {
-                'application/json': {
-                    schema: CheckinEventoSchema
-                }
-            },
-        }
-    },
+    responses: generateOpenAPIErrorsResponses(CheckinEventoSchema, {
+        '400': ['Campo Id é obrigatório', 'Campos obrigatórios'],
+        '404': ['Checkin não encontrado'],
+        '500': ['Falha ao registrar a anotação'],
+    })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -58,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .safeParse(await req.json())
 
     if (payloadError) {
-        return Response.json({ error: payloadError.message })
+        return Response.json({ error: payloadError?.message }, { status: 400 })
     }
 
     let checkin = await prisma.checkin.findFirst({
@@ -109,7 +102,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             )
         }
 
-        return Response.json({ data: evento })
+        return Response.json(evento)
     }
     catch (error: any) {
         console.error(error)

@@ -1,10 +1,42 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
-import { getPrismaErrorMessage } from "@/utils/helpers";
+import { ImpressoraSchema } from "@/prisma/generated/zod";
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers";
 import { nomeZodValidacao } from "@/utils/validacoes";
+import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import moment from "moment";
 import { NextRequest } from "next/server";
 import z from "zod";
+
+const RequestPutSchema = z
+    .object({
+        descricao: nomeZodValidacao
+    })
+
+export const OpenAPIImpressorasIdPut: RouteConfig = {
+    tags: ['Impressoras'],
+    summary: 'Atualiza os dados da impressora',
+    method: 'put',
+    path: '/impressoras/{id}',
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: z.object({
+            id: z.string()
+        }),
+        body: {
+            required: true,
+            content: {
+                "application/json": {
+                    schema: RequestPutSchema
+                }
+            }
+        }
+    },
+    responses: generateOpenAPIErrorsResponses(ImpressoraSchema, {
+        '400': ['Campo id é obrigatório', 'Campos obrigatórios'],
+        '500': ['Falha ao atualizar a impressora']
+    })
+}
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -12,10 +44,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         return Response.json({ error: 'Campo id é obrigatório' }, { status: 400 })
     }
 
-    const { data: payload, error: payloadError } = z
-        .object({
-            descricao: nomeZodValidacao
-        })
+    const { data: payload, error: payloadError } = RequestPutSchema
         .safeParse(await req.json())
 
     if (payloadError) {
@@ -29,7 +58,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 where: { id }
             })
 
-        return Response.json({ data: impressora })
+        return Response.json(impressora)
     }
     catch (error: any) {
         console.error(error)
@@ -41,6 +70,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         return Response.json({ error: 'Falha ao atualizar a impressora' }, { status: 500 })
     }
+}
+
+export const OpenAPIImpressorasIdPatch: RouteConfig = {
+    tags: ['Impressoras'],
+    summary: 'Registra a impressora ao operador',
+    method: 'patch',
+    path: '/impressoras/{id}',
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: z.object({
+            id: z.string()
+        })
+    },
+    responses: generateOpenAPIErrorsResponses(ImpressoraSchema, {
+        '400': ['Campo id é obrigatório'],
+        '500': ['Falha ao registrar o operador']
+    })
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -65,7 +111,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
                 where: { id }
             })
 
-        return Response.json({ data: impressora })
+        return Response.json(impressora)
     } catch (error: any) {
         console.error(error)
 
@@ -76,6 +122,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         return Response.json({ error: 'Falha ao registrar o operador' }, { status: 500 })
     }
+}
+
+
+export const OpenAPIImpressorasIdDelete: RouteConfig = {
+    tags: ['Impressoras'],
+    summary: 'Deleta a impressora',
+    method: 'delete',
+    path: '/impressoras/{id}',
+    security: [{ BearerAuth: [] }],
+    request: {
+        params: z.object({
+            id: z.string()
+        })
+    },
+    responses: generateOpenAPIErrorsResponses(ImpressoraSchema, {
+        '400': ['Campo id é obrigatório'],
+        '500': ['Falha ao deletar a impressora']
+    })
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

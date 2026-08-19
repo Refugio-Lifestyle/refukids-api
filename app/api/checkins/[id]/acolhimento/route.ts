@@ -1,34 +1,29 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { prisma } from "@/lib/prisma";
 import { CheckinEventoSchema } from "@/prisma/generated/zod";
-import { generateOpenAPIErrorResponse, generateOpenAPIPrismaErrorResponse, getPrismaErrorMessage } from "@/utils/helpers";
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers";
 import { notificarUsuario } from "@/utils/notificacao";
 import { RouteConfig } from "@asteasolutions/zod-to-openapi";
+import { Responsavel } from "@prisma/client";
 import { NextRequest } from "next/server";
 import z from "zod";
 
-export const OpenAPICheckinIdAcolhimento: RouteConfig = {
+export const OpenAPICheckinsIdAcolhimento: RouteConfig = {
+    tags: ['Checkins'],
+    summary: 'Salva um evento do checkin do tipo acolhimento',
     method: 'post',
-    path: '/api/checkins/{id}/acolhimento',
+    path: '/checkins/{id}/acolhimento',
+    security: [{ BearerAuth: [] }],
     request: {
         params: z.object({
             id: z.string()
         }),
     },
-    responses: {
-        ...generateOpenAPIPrismaErrorResponse(400, 'Falha na operação do banco de dados'),
-        ...generateOpenAPIErrorResponse(400, 'Campo Id é obrigatório'),
-        ...generateOpenAPIErrorResponse(404, 'Checkin não encontrado'),
-        ...generateOpenAPIErrorResponse(500, 'Falha ao registrar o acolhimento'),
-        200: {
-            description: 'Lista de posts',
-            content: {
-                'application/json': {
-                    schema: CheckinEventoSchema
-                }
-            },
-        }
-    },
+    responses: generateOpenAPIErrorsResponses(CheckinEventoSchema, {
+        '400': ['Campo Id é obrigatório'],
+        '404': ['Checkin não encontrado'],
+        '500': ['Falha ao registrar o acolhimento'],
+    })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -75,11 +70,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         let nomeCrianca = checkin.crianca.nome.split(' ')
         await notificarUsuario(
             usuario.cpf,
-            checkin.eventos.map(e => e.checkinPor!),
+            checkin.eventos.map(ev => ev.checkinPor!) as Responsavel[],
             { titulo: 'Acolhimento realizado', corpo: `Olá, ${nomeCrianca.shift()} acabou de ser acolhido em nossa salinha.` }
         )
 
-        return Response.json({ data: evento })
+        return Response.json(evento)
     }
     catch (error: any) {
         console.error(error)

@@ -1,12 +1,45 @@
 import { useUserToken } from "@/hooks/useUserToken";
 import { firebaseDb } from "@/lib/firebase";
 import { prisma } from "@/lib/prisma";
-import { getPrismaErrorMessage } from "@/utils/helpers";
+import { CheckinSchema } from "@/prisma/generated/zod";
+import { generateOpenAPIErrorsResponses, getPrismaErrorMessage } from "@/utils/helpers";
+import { notificarUsuario } from "@/utils/notificacao";
 import { idZodValidacao } from "@/utils/validacoes";
+import { RouteConfig } from "@asteasolutions/zod-to-openapi";
 import { child, push, ref } from "firebase/database";
 import moment from "moment";
 import { NextRequest } from "next/server";
 import z from "zod";
+
+const RequestPostPayload = z
+    .object({
+        criancaId: idZodValidacao,
+        impressoraId: idZodValidacao
+    })
+
+export const OpenAPICheckins: RouteConfig = {
+    tags: ['Checkins'],
+    summary: 'Registra um novo checkin',
+    method: 'post',
+    path: '/checkins',
+    security: [{ BearerAuth: [] }],
+    request: {
+        body: {
+            required: true,
+            content: {
+                'application/json': {
+                    schema: RequestPostPayload
+                }
+            },
+        }
+    },
+    responses: generateOpenAPIErrorsResponses(CheckinSchema, {
+        '400': ['Campos obrigatórios', 'Checkin Já realizado para essa criança'],
+        '401': ['Usuário sem permissão de fazer checkin'],
+        '404': ['Impressora não encontrada ou sem operador', 'Criança não encontrada', 'Turma não encontrada para a idade da criança'],
+        '500': ['Falha ao fazer o checkin']
+    })
+}
 
 export async function POST(req: NextRequest) {
     const usuario = useUserToken(req)
@@ -19,7 +52,7 @@ export async function POST(req: NextRequest) {
         .safeParse(await req.json())
 
     if (payloadError) {
-        return Response.json({ error: payloadError.message })
+        return Response.json({ error: payloadError?.message }, { status: 400 })
     }
 
     let responsavel = await prisma.responsavel.findFirst({
@@ -29,7 +62,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!responsavel) {
-        return Response.json({ error: 'Usuário sem permissão de fazer checkin' }, { status: 400 })
+        return Response.json({ error: 'Usuário sem permissão de fazer checkin' }, { status: 401 })
     }
 
     let impressora = await prisma.impressora.findFirst({
@@ -138,8 +171,14 @@ export async function POST(req: NextRequest) {
         })
 
         // Notificar responsável
+        let nomeResponsavel = responsavel.nome.split(' ')
+        await notificarUsuario(
+            usuario.cpf,
+            [responsavel],
+            { titulo: 'Checkin realizado', corpo: `Ola ${nomeResponsavel.shift()}, leve sua criança até a salinha ${turma.descricao}.` }
+        )
 
-        return Response.json({ data: checkin })
+        return Response.json(checkin)
     }
     catch (error: any) {
         console.error(error)

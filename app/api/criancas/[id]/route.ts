@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
                 where: { id }
             })
 
-        return Response.json({ data: crianca })
+        return Response.json(crianca)
     } catch (error: any) {
         console.error(error)
 
@@ -84,7 +84,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         await prisma.crianca
             .delete({ where: { id } })
 
-        return Response.json({ data: {} })
+        return Response.json({})
     } catch (error: any) {
         console.error(error)
 
